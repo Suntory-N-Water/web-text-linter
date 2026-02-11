@@ -67,11 +67,11 @@ describe("DraftService", () => {
       // 最初の保存
       void draftService.saveDraft({ text: "テキスト1" });
 
-      // 2900ms待機後に追加保存（最大待機時間内）
+      // 2900ms待機後に追加保存(最大待機時間内)
       await new Promise((resolve) => setTimeout(resolve, 2900));
       void draftService.saveDraft({ text: "テキスト2" });
 
-      // さらに200ms待機（最大待機時間超過）
+      // さらに200ms待機(最大待機時間超過)
       await new Promise((resolve) => setTimeout(resolve, 200));
 
       // 最大待機時間により強制保存されること
@@ -151,6 +151,84 @@ describe("DraftService", () => {
       const result = await draftService.clearDraft();
 
       expect(result.success).toBe(true);
+    });
+  });
+
+  describe("saveIgnoredIssueIds", () => {
+    it("無視された指摘IDをlocalStorageに保存できること", () => {
+      const ignoredIds = new Set(["issue-1", "issue-2"]);
+
+      const result = draftService.saveIgnoredIssueIds({
+        ignoredIssueIds: ignoredIds,
+      });
+
+      expect(result.success).toBe(true);
+
+      // localStorageに正しく保存されていること
+      const stored = localStorageAdapter.getItem({
+        key: "jlwe:ignoredIssueIds",
+      });
+      if (stored.success && stored.value !== null) {
+        const parsed = JSON.parse(stored.value) as string[];
+        expect(parsed.sort()).toEqual(["issue-1", "issue-2"]);
+      }
+    });
+
+    it("空のSetを保存できること", () => {
+      const result = draftService.saveIgnoredIssueIds({
+        ignoredIssueIds: new Set(),
+      });
+
+      expect(result.success).toBe(true);
+
+      const stored = localStorageAdapter.getItem({
+        key: "jlwe:ignoredIssueIds",
+      });
+      if (stored.success && stored.value !== null) {
+        const parsed = JSON.parse(stored.value) as string[];
+        expect(parsed).toEqual([]);
+      }
+    });
+  });
+
+  describe("loadIgnoredIssueIds", () => {
+    it("保存された無視情報を読み込めること", () => {
+      localStorageAdapter.setItem({
+        key: "jlwe:ignoredIssueIds",
+        value: JSON.stringify(["issue-1", "issue-2"]),
+      });
+
+      const result = draftService.loadIgnoredIssueIds();
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.value.has("issue-1")).toBe(true);
+        expect(result.value.has("issue-2")).toBe(true);
+        expect(result.value.size).toBe(2);
+      }
+    });
+
+    it("無視情報が存在しない場合は空のSetを返すこと", () => {
+      const result = draftService.loadIgnoredIssueIds();
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.value.size).toBe(0);
+      }
+    });
+
+    it("不正なJSON形式の場合は空のSetを返すこと", () => {
+      localStorageAdapter.setItem({
+        key: "jlwe:ignoredIssueIds",
+        value: "invalid-json",
+      });
+
+      const result = draftService.loadIgnoredIssueIds();
+
+      expect(result.success).toBe(true);
+      if (result.success) {
+        expect(result.value.size).toBe(0);
+      }
     });
   });
 

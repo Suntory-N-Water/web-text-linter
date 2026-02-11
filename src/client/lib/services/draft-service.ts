@@ -120,6 +120,63 @@ export class DraftService {
   }
 
   /**
+   * 無視された指摘IDをlocalStorageに保存
+   *
+   * @param params - パラメータ
+   * @param params.ignoredIssueIds - 無視された指摘IDのSet
+   * @returns 成功時はok()、失敗時はDraftErrorを含むerr()
+   */
+  saveIgnoredIssueIds({
+    ignoredIssueIds,
+  }: {
+    ignoredIssueIds: Set<string>;
+  }): Result<void, DraftError> {
+    const json = JSON.stringify([...ignoredIssueIds]);
+    const result = this.storage.setItem({
+      key: this.ignoredIssuesKey,
+      value: json,
+    });
+
+    if (!result.success) {
+      return err(
+        new DraftError("無視情報の保存に失敗しました", {
+          cause: result.error,
+        }),
+      );
+    }
+
+    return ok(undefined);
+  }
+
+  /**
+   * 無視された指摘IDをlocalStorageから読み込み
+   *
+   * @returns 成功時は無視された指摘IDのSetを含むok()、失敗時はDraftErrorを含むerr()
+   */
+  loadIgnoredIssueIds(): Result<Set<string>, DraftError> {
+    const result = this.storage.getItem({ key: this.ignoredIssuesKey });
+
+    if (!result.success) {
+      return err(
+        new DraftError("無視情報の読み込みに失敗しました", {
+          cause: result.error,
+        }),
+      );
+    }
+
+    if (result.value === null) {
+      return ok(new Set<string>());
+    }
+
+    try {
+      const parsed = JSON.parse(result.value) as string[];
+      return ok(new Set(parsed));
+    } catch {
+      return ok(new Set<string>());
+    }
+  }
+
+  /**
    * ドラフトと無視情報をクリア
    *
    * @returns 成功時はok()、失敗時はDraftErrorを含むerr()

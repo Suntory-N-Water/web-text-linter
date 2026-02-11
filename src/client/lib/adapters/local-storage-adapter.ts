@@ -1,5 +1,3 @@
-"use client";
-
 import { StorageError } from "@/client/lib/types/errors";
 import { err, ok, type Result } from "@/client/lib/types/result";
 

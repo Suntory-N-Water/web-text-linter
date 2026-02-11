@@ -109,8 +109,10 @@ describe("LintResultPanel", () => {
       />,
     );
 
-    // 最初の指摘をクリック
-    const firstIssue = container.querySelector('[data-issue-id="issue-1"]');
+    // 最初の指摘の選択ボタンをクリック
+    const firstIssue = container.querySelector(
+      '[data-issue-id="issue-1"] button[type="button"]',
+    );
     expect(firstIssue).not.toBeNull();
 
     if (firstIssue) {
@@ -160,5 +162,134 @@ describe("LintResultPanel", () => {
 
     // 空メッセージが表示されることを確認
     expect(screen.getByText(/指摘はありません/)).not.toBeNull();
+  });
+
+  // タスク8.2: 選択中の指摘詳細
+  describe("選択中の指摘詳細", () => {
+    it("selectedIssueIdがnullの場合は詳細セクションを表示しない", () => {
+      const handleIssueSelect = mock(() => {});
+      const handleIssueIgnore = mock(() => {});
+
+      render(
+        <LintResultPanel
+          lintResults={mockLintResults}
+          selectedIssueId={null}
+          onIssueSelect={handleIssueSelect}
+          onIssueIgnore={handleIssueIgnore}
+          ignoredIssueIds={new Set()}
+        />,
+      );
+
+      expect(screen.queryByTestId("issue-detail")).toBeNull();
+    });
+
+    it("選択中の指摘の詳細情報を表示する", () => {
+      const handleIssueSelect = mock(() => {});
+      const handleIssueIgnore = mock(() => {});
+
+      render(
+        <LintResultPanel
+          lintResults={mockLintResults}
+          selectedIssueId="issue-1"
+          onIssueSelect={handleIssueSelect}
+          onIssueIgnore={handleIssueIgnore}
+          ignoredIssueIds={new Set()}
+        />,
+      );
+
+      const detail = screen.getByTestId("issue-detail");
+      expect(detail).not.toBeNull();
+
+      // 行番号が表示される
+      expect(detail.textContent).toContain("1");
+      // ルールIDが表示される
+      expect(detail.textContent).toContain("ja-technical-writing/max-ten");
+      // 完全メッセージが表示される
+      expect(detail.textContent).toContain(
+        '一つの文で"、"を4つ以上使用しています',
+      );
+      // 対象文(snippet)が表示される
+      expect(detail.textContent).toContain("テスト文章テスト文章テスト");
+    });
+
+    it("存在しないissueIdが指定された場合は詳細セクションを表示しない", () => {
+      const handleIssueSelect = mock(() => {});
+      const handleIssueIgnore = mock(() => {});
+
+      render(
+        <LintResultPanel
+          lintResults={mockLintResults}
+          selectedIssueId="non-existent-id"
+          onIssueSelect={handleIssueSelect}
+          onIssueIgnore={handleIssueIgnore}
+          ignoredIssueIds={new Set()}
+        />,
+      );
+
+      expect(screen.queryByTestId("issue-detail")).toBeNull();
+    });
+  });
+
+  // タスク8.3: 指摘の無視機能
+  describe("指摘の無視機能", () => {
+    it("各指摘に無視ボタンを表示する", () => {
+      const handleIssueSelect = mock(() => {});
+      const handleIssueIgnore = mock(() => {});
+
+      render(
+        <LintResultPanel
+          lintResults={mockLintResults}
+          selectedIssueId={null}
+          onIssueSelect={handleIssueSelect}
+          onIssueIgnore={handleIssueIgnore}
+          ignoredIssueIds={new Set()}
+        />,
+      );
+
+      const ignoreButtons = screen.getAllByRole("button", { name: "無視" });
+      expect(ignoreButtons.length).toBe(2);
+    });
+
+    it("無視ボタンをクリックしたらonIssueIgnoreが呼ばれる", () => {
+      const handleIssueSelect = mock(() => {});
+      const handleIssueIgnore = mock(() => {});
+
+      render(
+        <LintResultPanel
+          lintResults={mockLintResults}
+          selectedIssueId={null}
+          onIssueSelect={handleIssueSelect}
+          onIssueIgnore={handleIssueIgnore}
+          ignoredIssueIds={new Set()}
+        />,
+      );
+
+      const ignoreButtons = screen.getAllByRole("button", { name: "無視" });
+      fireEvent.click(ignoreButtons[0]);
+
+      expect(handleIssueIgnore).toHaveBeenCalledTimes(1);
+      expect(handleIssueIgnore).toHaveBeenCalledWith("issue-1");
+    });
+
+    it("無視ボタンクリック時に指摘選択イベントが発火しない", () => {
+      const handleIssueSelect = mock(() => {});
+      const handleIssueIgnore = mock(() => {});
+
+      render(
+        <LintResultPanel
+          lintResults={mockLintResults}
+          selectedIssueId={null}
+          onIssueSelect={handleIssueSelect}
+          onIssueIgnore={handleIssueIgnore}
+          ignoredIssueIds={new Set()}
+        />,
+      );
+
+      const ignoreButtons = screen.getAllByRole("button", { name: "無視" });
+      fireEvent.click(ignoreButtons[0]);
+
+      // onIssueSelectは呼ばれない
+      expect(handleIssueSelect).toHaveBeenCalledTimes(0);
+    });
   });
 });
